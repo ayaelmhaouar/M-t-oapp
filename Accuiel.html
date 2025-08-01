@@ -118,6 +118,7 @@
     <div class="container-fluid">
       <a class="navbar-brand" href="#">MétéoApp</a>
       <button id="darkModeToggle" class="btn btn-outline-light ms-auto">🌙 Mode sombre</button>
+      <button id="unitToggle" class="btn btn-outline-light ms-2">°C</button>
     </div>
   </nav>
 
@@ -173,6 +174,7 @@
 
   <script>
     const apiKey = "8a13ac9e0e8515588672f3bf2608393c";
+    let currentUnit = "metric";
 
     document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("darkModeToggle").addEventListener("click", () => {
@@ -182,13 +184,26 @@
           : "🌙 Mode sombre";
       });
 
+      document.getElementById("unitToggle").addEventListener("click", () => {
+        currentUnit = currentUnit === "metric" ? "imperial" : "metric";
+        document.getElementById("unitToggle").textContent = currentUnit === "metric" ? "°C" : "°F";
+
+        const city = document.getElementById("inputcity").value.trim();
+        if (city) apicall(city);
+
+        const forecastCity = document.getElementById("searchCity").value.trim();
+        if (forecastCity) forecastCall(forecastCity);
+
+        const city3h = document.getElementById("cityInput").value.trim();
+        if (city3h) getForecast(city3h);
+      });
+
       document.querySelector("form").addEventListener("submit", function (e) {
         e.preventDefault();
         const city = document.getElementById("inputcity").value.trim();
         if (city !== "") apicall(city);
       });
 
-      // Auto-géolocalisation à l'ouverture
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(pos => {
           getWeatherByCoords(pos.coords.latitude, pos.coords.longitude);
@@ -196,28 +211,32 @@
       }
     });
 
+    function getTempUnitSymbol() {
+      return currentUnit === "metric" ? "°C" : "°F";
+    }
+
     function apicall(city) {
-      fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=fr`)
+      fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=${currentUnit}&lang=fr`)
         .then(res => res.json())
         .then(data => displayWeather(data))
         .catch(() => alert("Ville non trouvée."));
     }
 
     function getWeatherByCoords(lat, lon) {
-      fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=fr`)
+      fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=${currentUnit}&lang=fr`)
         .then(res => res.json())
         .then(data => displayWeather(data));
     }
 
     function displayWeather(data) {
       document.getElementById("city").innerHTML = `<i class="bi bi-geo-alt-fill"></i> ${data.name}`;
-      document.getElementById("temp").innerHTML = `<i class="bi bi-thermometer-half"></i> ${data.main.temp}°C`;
+      document.getElementById("temp").innerHTML = `<i class="bi bi-thermometer-half"></i> ${data.main.temp}${getTempUnitSymbol()}`;
       document.getElementById("humidity").innerHTML = `<i class="bi bi-droplet-half"></i> ${data.main.humidity}%`;
-      document.getElementById("vent").innerHTML = `<i class="bi bi-wind"></i> ${data.wind.speed} km/h`;
+      document.getElementById("vent").innerHTML = `<i class="bi bi-wind"></i> ${data.wind.speed} ${currentUnit === "metric" ? "km/h" : "mph"}`;
     }
 
     function forecastCall(city) {
-      fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric&lang=fr`)
+      fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=${currentUnit}&lang=fr`)
         .then(res => res.json())
         .then(data => {
           const demain = new Date();
@@ -236,7 +255,7 @@
                 <div class="forecast-item">
                   <div><strong>${heure}</strong></div>
                   <div><img src="${icon}" alt="${condition}"> ${condition}</div>
-                  <div>${temp}°C</div>
+                  <div>${temp}${getTempUnitSymbol()}</div>
                 </div>`;
             }).join("");
           document.getElementById("forecast-container").innerHTML = forecastHTML;
@@ -245,7 +264,7 @@
 
     function getForecast() {
       const city = document.getElementById("cityInput").value.trim();
-      fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric&lang=fr`)
+      fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=${currentUnit}&lang=fr`)
         .then(res => res.json())
         .then(data => {
           const forecastHTML = data.list.map(item => {
@@ -259,7 +278,7 @@
               <div class="forecast-item">
                 <div><strong>${day}</strong><br>${hour}</div>
                 <div><img src="${icon}" alt="${condition}"></div>
-                <div>${temp}°C<br>${condition}</div>
+                <div>${temp}${getTempUnitSymbol()}<br>${condition}</div>
               </div>`;
           }).join("");
           document.getElementById("forecastContainer").innerHTML = forecastHTML;
